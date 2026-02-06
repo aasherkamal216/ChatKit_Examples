@@ -21,7 +21,13 @@
     await customElements.whenDefined('openai-chatkit');
     const chat = document.getElementById('chat');
 
-    // FIX 1: Add 'data' property to satisfy Pydantic validation on server
+    // FIX: Generate and store a stable User ID in LocalStorage
+    let userId = localStorage.getItem('chatkit_user_id');
+    if (!userId) {
+        userId = 'user_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('chatkit_user_id', userId);
+    }
+
     const MOCK_ENTITIES = [
         { id: "order_123", title: "Order #123", group: "Orders", icon: "lucide:box", interactive: true, data: { type: 'order' } },
         { id: "order_456", title: "Order #456", group: "Orders", icon: "lucide:box", interactive: true, data: { type: 'order' } },
@@ -31,6 +37,14 @@
     chat.setOptions({
         api: {
             url: 'http://localhost:8000/chatkit',
+            // FIX: Custom fetch to ensure the server always knows who we are
+            fetch: (url, options) => {
+                options.headers = {
+                    ...options.headers,
+                    'X-ChatKit-User': userId
+                };
+                return fetch(url, options);
+            },
             uploadStrategy: {
                 type: 'direct',
                 uploadUrl: 'http://localhost:8000/upload'

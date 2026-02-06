@@ -26,25 +26,19 @@ store = SQLiteStore()
 server = MyChatKitServer(store=store, attachment_store=store)
 
 # --- FIX: User Isolation via Cookies ---
-def get_user(request: Request, response: Response, chatkit_sid: str = Cookie(None)) -> RequestContext:
+def get_user(request: Request) -> RequestContext:
     """
-    Identifies unique users using a session cookie.
-    If no cookie exists, generates a new UUID.
+    Identifies unique users using the X-ChatKit-User header.
     """
-    if not chatkit_sid:
-        chatkit_sid = f"user_{uuid4().hex[:8]}"
-        # Set cookie to expire in 30 days
-        response.set_cookie(
-            key="chatkit_sid", 
-            value=chatkit_sid, 
-            max_age=3600*24*30, 
-            httponly=True,
-            samesite="lax"
-        )
-    return RequestContext(user_id=chatkit_sid)
+    user_id = request.headers.get("x-chatkit-user")
+    if not user_id:
+        # Fallback for direct browser hits or misconfigured clients
+        user_id = "anonymous-default"
+    return RequestContext(user_id=user_id)
 
 @app.post("/chatkit")
 async def handle_chatkit(request: Request, ctx: RequestContext = Depends(get_user)):
+    # This remains the same, but ctx now has the stable header-based user_id
     try:
         body = await request.body()
         result = await server.process(body, ctx)
