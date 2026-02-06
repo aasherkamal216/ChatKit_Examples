@@ -3,12 +3,38 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ChatKit Full Demo</title>
+    <title>ChatKit Professional Agent</title>
+    <!-- Load ChatKit Web Component -->
     <script src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js" async></script>
     <style>
-        body { margin: 0; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f4f4f4; }
-        #chat-container { width: 100%; max-width: 600px; height: 90vh; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; }
-        openai-chatkit { display: block; height: 100%; width: 100%; }
+        body { 
+            margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            background: #f0f2f5; 
+        }
+        
+        #chat-container { 
+            width: 100%; 
+            max-width: 600px; 
+            height: 90vh; 
+            background: white; 
+            border-radius: 16px; 
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12); 
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Ensure the custom element fills the container */
+        openai-chatkit { 
+            display: block; 
+            height: 100%; 
+            width: 100%; 
+        }
     </style>
 </head>
 <body>
@@ -18,26 +44,31 @@
 </div>
 
 <script type="module">
+    // 1. Wait for the component to be ready
     await customElements.whenDefined('openai-chatkit');
     const chat = document.getElementById('chat');
 
-    // FIX: Generate and store a stable User ID in LocalStorage
+    // 2. Identify Unique User (Iframe-safe persistence)
     let userId = localStorage.getItem('chatkit_user_id');
     if (!userId) {
         userId = 'user_' + Math.random().toString(36).substring(2, 11);
         localStorage.setItem('chatkit_user_id', userId);
     }
 
+    // 3. Mock Data for @-mention Entity Search
     const MOCK_ENTITIES = [
-        { id: "order_123", title: "Order #123", group: "Orders", icon: "lucide:box", interactive: true, data: { type: 'order' } },
-        { id: "order_456", title: "Order #456", group: "Orders", icon: "lucide:box", interactive: true, data: { type: 'order' } },
-        { id: "doc_policy", title: "Return Policy", group: "Docs", icon: "document", interactive: true, data: { type: 'doc' } }
+        { id: "order_123", title: "Order #123 (Shipped)", group: "Active Orders", icon: "lucide:package", interactive: true, data: { type: 'order' } },
+        { id: "order_456", title: "Order #456 (Processing)", group: "Active Orders", icon: "lucide:clock", interactive: true, data: { type: 'order' } },
+        { id: "doc_policy", title: "Return Policy", group: "Documentation", icon: "document", interactive: true, data: { type: 'doc' } },
+        { id: "doc_shipping", title: "Shipping Rates", group: "Documentation", icon: "document", interactive: true, data: { type: 'doc' } }
     ];
 
-    chat.setOptions({
+    // 4. Define Initial Options
+    // We store this in a variable so we can merge updates (like themes) later.
+    let currentOptions = {
         api: {
             url: 'http://localhost:8000/chatkit',
-            // FIX: Custom fetch to ensure the server always knows who we are
+            // Inject the User ID header into every request
             fetch: (url, options) => {
                 options.headers = {
                     ...options.headers,
@@ -51,37 +82,43 @@
             },
             domainKey: 'local-dev' 
         },
-        // FIX 2: Enable Retry buttons
-        threadItemActions: {
-            retry: true,
-            feedback: true
+        theme: {
+            colorScheme: 'light',
+            radius: 'pill'
         },
-        // FIX 3: Configure Start Screen with Prompts
         startScreen: {
-            greeting: "Welcome to ChatKit Demo",
+            greeting: "Hello! I'm your ProAgent.",
             prompts: [
+                { label: "Search AI News", prompt: "Search the web for the latest news on OpenAI ChatKit", icon: "lucide:search" },
+                { label: "Check my Order", prompt: "What is the status of @Order #123?", icon: "lucide:package" },
+                { label: "Customize UI", prompt: "I want a new theme. Make it dark mode with a purple neon style and sharp corners.", icon: "lucide:palette" },
                 { label: "Check Weather", prompt: "What is the weather in San Francisco?", icon: "lucide:sun" },
                 { label: "Generate Image", prompt: "Generate an image of a futuristic city", icon: "lucide:image" },
-                { label: "Order Status", prompt: "Check status for @Order #123", icon: "lucide:box" }
             ]
         },
         composer: {
-            placeholder: "Ask about weather, orders, or generate an image...",
+            placeholder: "Ask me to search, generate images, or change the UI...",
             dictation: { enabled: true },
             attachments: { enabled: true },
             tools: [
-                { id: "get_weather", label: "Check Weather", icon: "lucide:sun" },
-                { id: "show_feedback_form", label: "Give Feedback", icon: "star" }
+                { id: "web_search", label: "Web Search", icon: "lucide:globe" },
+                { id: "get_weather", label: "Weather", icon: "lucide:sun" },
+                { id: "show_feedback_form", label: "Feedback", icon: "star" },
+                { id: "preview_theme", label: "Theme Creation", icon: "lucide:paintbrush" }
             ],
             models: [
-                { id: "gpt-5.1", label: "GPT-5.1", default: true },
-                { id: "gpt-5-mini", label: "GPT-5 Mini" }
+                { id: "gpt-5.1", label: "GPT-5.1" },
+                { id: "gpt-5-mini", label: "GPT-5 Mini", default: true }
             ]
         },
         history: {
             enabled: true,
             showDelete: true,
             showRename: true
+        },
+        threadItemActions: {
+            retry: true,
+            feedback: true
         },
         entities: {
             showComposerMenu: true,
@@ -90,26 +127,52 @@
                 return MOCK_ENTITIES.filter(e => e.title.toLowerCase().includes(q));
             },
             onClick: (entity) => {
-                alert(`Clicked entity: ${entity.title}`);
+                console.log("User clicked entity:", entity);
             },
             onRequestPreview: async (entity) => {
+                // Returns a rich preview widget for the entity
                 return {
                     preview: {
                         type: 'Basic',
                         children: [
                             { type: 'Title', value: entity.title, size: 'sm' },
-                            { type: 'Text', value: `ID: ${entity.id}`, size: 'sm', color: 'secondary' }
+                            { type: 'Text', value: `Database ID: ${entity.id}`, size: 'sm', color: 'secondary' },
+                            { type: 'Text', value: "Click to open full records in dashboard.", size: 'xs' }
                         ]
                     }
                 };
             }
-        },
-        widgets: {
-            onAction: async (action, widgetItem) => {
-                console.log("Widget Action:", action);
-            }
+        }
+    };
+
+    // 5. Initialize Chat
+    chat.setOptions(currentOptions);
+
+    // 6. LISTEN FOR CLIENT EFFECTS
+    // This allows the server to change the UI look and feel or trigger local logic.
+    chat.addEventListener('chatkit.effect', (event) => {
+        const { name, data } = event.detail;
+        
+        console.log(`Effect received: ${name}`, data);
+
+        if (name === 'update_ui_theme') {
+            // Apply the new theme data sent by the server tool
+            currentOptions = {
+                ...currentOptions,
+                theme: data
+            };
+            
+            // Re-apply options to trigger instant UI update
+            chat.setOptions(currentOptions);
+            console.log("UI Theme updated successfully.");
         }
     });
+
+    // Optional: Log errors for debugging
+    chat.addEventListener('chatkit.error', (e) => {
+        console.error("ChatKit Runtime Error:", e.detail.error);
+    });
+
 </script>
 
 </body>
