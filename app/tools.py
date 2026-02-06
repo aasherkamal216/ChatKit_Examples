@@ -4,7 +4,7 @@ import asyncio
 from pydantic import BaseModel, Field
 from agents import function_tool, RunContextWrapper
 from chatkit.agents import AgentContext
-from chatkit.types import Workflow, CustomTask, DurationSummary
+from chatkit.types import Workflow, CustomTask, DurationSummary, ProgressUpdateEvent
 from .widgets import (
     build_vibrant_weather_widget,
     build_clean_theme_widget,
@@ -156,3 +156,54 @@ async def analyze_sales_data(
     await ctx.context.stream_widget(widget)
 
     return f"Sales analysis for {region} completed. Chart displayed."
+
+@function_tool
+async def generate_deep_research_report(
+    ctx: RunContextWrapper[AgentContext], 
+    topic: str
+):
+    """
+    Conducts a deep-dive research session on a complex topic. 
+    Use this when the user asks for a 'report', 'comprehensive study', or 'deep dive'.
+    """
+    
+    # Stage 1: Planning
+    await ctx.context.stream(
+        ProgressUpdateEvent(text=f"Structuring research plan...")
+    )
+    await asyncio.sleep(1.5)
+
+    # Stage 2: Broad Search
+    await ctx.context.stream(
+        ProgressUpdateEvent(text="Scanning academic journals...")
+    )
+    await asyncio.sleep(2.0)
+
+    # Stage 3: Cross-referencing
+    await ctx.context.stream(
+        ProgressUpdateEvent(text="Cross-referencing data points...")
+    )
+    await asyncio.sleep(1.5)
+
+    # Stage 4: Writing
+    await ctx.context.stream(
+        ProgressUpdateEvent(text="Drafting final executive summary...")
+    )
+    await asyncio.sleep(1.0)
+
+    # Return the "result" which the LLM will then present to the user
+    return f"""
+    [RESEARCH REPORT: {topic}]
+    
+    EXECUTIVE SUMMARY:
+    Comprehensive analysis confirms significant trends in {topic}. 
+    Primary drivers include technological shifts and market adoption rates.
+    
+    KEY FINDINGS:
+    1. Adoption has increased by 40% YoY.
+    2. Regulatory frameworks are tightening globally.
+    3. Key innovators are pivoting toward sustainable models.
+    
+    CONCLUSION:
+    The outlook is positive, though short-term volatility is expected.
+    """

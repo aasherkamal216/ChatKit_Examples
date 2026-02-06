@@ -1,6 +1,11 @@
 from agents import Agent
 from agents.tool import ImageGenerationTool, WebSearchTool
-from .tools import get_weather, preview_theme, analyze_sales_data 
+from .tools import (
+    get_weather,
+    preview_theme,
+    analyze_sales_data,
+    generate_deep_research_report,
+)
 
 # Initialize Tools
 image_tool = ImageGenerationTool(
@@ -34,7 +39,17 @@ my_agent = Agent(
     
     5. IMAGE GENERATION:
        - If asked to generate images, use the image generation tool.
+
+    6. DEEP RESEARCH:
+       - If the user asks for a 'report', 'comprehensive study', or 'deep dive' on a topic, use 'generate_deep_research_report'.
     """,
     model="gpt-5-mini",
-    tools=[search_tool, image_tool, preview_theme, get_weather, analyze_sales_data],
+    tools=[
+        search_tool,
+        image_tool,
+        preview_theme,
+        get_weather,
+        analyze_sales_data,
+        generate_deep_research_report,
+    ],
 )
