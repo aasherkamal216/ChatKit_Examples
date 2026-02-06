@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ChatKit Full Demo</title>
+    <script src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js" async></script>
+    <style>
+        body { margin: 0; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f4f4f4; }
+        #chat-container { width: 100%; max-width: 600px; height: 90vh; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; }
+        openai-chatkit { display: block; height: 100%; width: 100%; }
+    </style>
+</head>
+<body>
+
+<div id="chat-container">
+    <openai-chatkit id="chat"></openai-chatkit>
+</div>
+
+<script type="module">
+    await customElements.whenDefined('openai-chatkit');
+    const chat = document.getElementById('chat');
+
+    // FIX 1: Add 'data' property to satisfy Pydantic validation on server
+    const MOCK_ENTITIES = [
+        { id: "order_123", title: "Order #123", group: "Orders", icon: "lucide:box", interactive: true, data: { type: 'order' } },
+        { id: "order_456", title: "Order #456", group: "Orders", icon: "lucide:box", interactive: true, data: { type: 'order' } },
+        { id: "doc_policy", title: "Return Policy", group: "Docs", icon: "document", interactive: true, data: { type: 'doc' } }
+    ];
+
+    chat.setOptions({
+        api: {
+            url: 'http://localhost:8000/chatkit',
+            uploadStrategy: {
+                type: 'direct',
+                uploadUrl: 'http://localhost:8000/upload'
+            },
+            domainKey: 'local-dev' 
+        },
+        // FIX 2: Enable Retry buttons
+        threadItemActions: {
+            retry: true,
+            feedback: true
+        },
+        // FIX 3: Configure Start Screen with Prompts
+        startScreen: {
+            greeting: "Welcome to ChatKit Demo",
+            prompts: [
+                { label: "Check Weather", prompt: "What is the weather in San Francisco?", icon: "lucide:sun" },
+                { label: "Generate Image", prompt: "Generate an image of a futuristic city", icon: "lucide:image" },
+                { label: "Order Status", prompt: "Check status for @Order #123", icon: "lucide:box" }
+            ]
+        },
+        composer: {
+            placeholder: "Ask about weather, orders, or generate an image...",
+            dictation: { enabled: true },
+            attachments: { enabled: true },
+            tools: [
+                { id: "get_weather", label: "Check Weather", icon: "lucide:sun" },
+                { id: "show_feedback_form", label: "Give Feedback", icon: "star" }
+            ],
+            models: [
+                { id: "gpt-5.1", label: "GPT-5.1", default: true },
+                { id: "gpt-5-mini", label: "GPT-5 Mini" }
+            ]
+        },
+        history: {
+            enabled: true,
+            showDelete: true,
+            showRename: true
+        },
+        entities: {
+            showComposerMenu: true,
+            onTagSearch: async (query) => {
+                const q = query.toLowerCase();
+                return MOCK_ENTITIES.filter(e => e.title.toLowerCase().includes(q));
+            },
+            onClick: (entity) => {
+                alert(`Clicked entity: ${entity.title}`);
+            },
+            onRequestPreview: async (entity) => {
+                return {
+                    preview: {
+                        type: 'Basic',
+                        children: [
+                            { type: 'Title', value: entity.title, size: 'sm' },
+                            { type: 'Text', value: `ID: ${entity.id}`, size: 'sm', color: 'secondary' }
+                        ]
+                    }
+                };
+            }
+        },
+        widgets: {
+            onAction: async (action, widgetItem) => {
+                console.log("Widget Action:", action);
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
