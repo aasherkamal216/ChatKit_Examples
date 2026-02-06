@@ -47,8 +47,8 @@ class LocalConverter(ThreadItemConverter):
             return ResponseInputTextParam(type="input_text", text=f"[Binary file {attachment.name}]")
 
 class LocalResponseConverter(ResponseStreamConverter):
-    async def base64_image_to_url(self, image_id: str, b64: str, index: int | None = None) -> str:
-        return f"data:image/png;base64,{b64}"
+    async def base64_image_to_url(self, image_id: str, base64_image: str, partial_image_index: int | None = None) -> str:
+        return f"data:image/png;base64,{base64_image}"
 
 class MyChatKitServer(ChatKitServer[RequestContext]):
     
