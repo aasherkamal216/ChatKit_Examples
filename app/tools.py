@@ -4,7 +4,7 @@ import asyncio
 from pydantic import BaseModel, Field
 from agents import function_tool, RunContextWrapper
 from chatkit.agents import AgentContext
-from chatkit.types import Workflow, CustomTask, DurationSummary, ProgressUpdateEvent
+from chatkit.types import Workflow, CustomTask, CustomSummary, ProgressUpdateEvent
 from .widgets import (
     build_vibrant_weather_widget,
     build_clean_theme_widget,
@@ -104,7 +104,7 @@ async def analyze_sales_data(
     await ctx.context.start_workflow(workflow)
     
     # --- Step 1: Simulated Database Query ---
-    await asyncio.sleep(1.0) # Fake latency
+    await asyncio.sleep(2) # Fake latency
     
     # Update first task to complete
     task_1 = workflow.tasks[0]
@@ -117,7 +117,7 @@ async def analyze_sales_data(
     task_2 = CustomTask(title=f"Aggregating records for {region}...", status_indicator="loading")
     await ctx.context.add_workflow_task(task_2)
     
-    await asyncio.sleep(1.5) # Fake heavy computation
+    await asyncio.sleep(2.5) # Fake heavy computation
     
     task_2.title = f"Aggregated 14,203 records for {region}"
     task_2.status_indicator = "complete"
@@ -128,7 +128,7 @@ async def analyze_sales_data(
     task_3 = CustomTask(title="Generating Visualization...", status_indicator="loading")
     await ctx.context.add_workflow_task(task_3)
     
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(1.5)
     
     task_3.title = "Report Generated"
     task_3.status_indicator = "complete"
@@ -137,7 +137,7 @@ async def analyze_sales_data(
     # 2. Close the Workflow UI
     # Passing a summary collapses the steps into a nice header
     await ctx.context.end_workflow(
-        summary=DurationSummary(duration=3) # "Completed in 3s"
+        summary=CustomSummary(title="Analysis Complete", icon="lucide:bar-chart") # "Completed in 3s"
     )
 
     # 3. Generate Mock Data

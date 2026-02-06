@@ -1,11 +1,13 @@
 import os
 import shutil
+import base64
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import FastAPI, Request, UploadFile, Depends, Response, Cookie
+from fastapi import FastAPI, Request, UploadFile, Depends, Response
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from chatkit.server import StreamingResult
@@ -19,26 +21,28 @@ load_dotenv()
 
 app = FastAPI()
 
-# Setup persistence
+# --- Enable CORS ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 store = SQLiteStore()
 server = MyChatKitServer(store=store, attachment_store=store)
 
-# --- FIX: User Isolation via Cookies ---
 def get_user(request: Request) -> RequestContext:
-    """
-    Identifies unique users using the X-ChatKit-User header.
-    """
     user_id = request.headers.get("x-chatkit-user")
     if not user_id:
-        # Fallback for direct browser hits or misconfigured clients
         user_id = "anonymous-default"
     return RequestContext(user_id=user_id)
 
 @app.post("/chatkit")
 async def handle_chatkit(request: Request, ctx: RequestContext = Depends(get_user)):
-    # This remains the same, but ctx now has the stable header-based user_id
     try:
         body = await request.body()
         result = await server.process(body, ctx)
@@ -59,22 +63,35 @@ async def upload_file(file: UploadFile, ctx: RequestContext = Depends(get_user))
     safe_filename = f"{file_id}{ext}"
     file_path = UPLOAD_DIR / safe_filename
     
+    # 1. Save the file locally for the Agent to use
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
         
     is_image = file.content_type.startswith("image/")
-    base_url = "http://localhost:8000/files"
-    file_url = f"{base_url}/{safe_filename}"
     
+    # 2. --- Generate Base64 for the Preview ---
+    # This avoids the "Mixed Content" block in the browser UI
     if is_image:
+        with open(file_path, "rb") as f:
+            file_bytes = f.read()
+            b64_data = base64.b64encode(file_bytes).decode("utf-8")
+            preview_data_url = f"data:{file.content_type};base64,{b64_data}"
+            
         attachment = ImageAttachment(
-            type="image", id=file_id, name=file.filename,
-            mime_type=file.content_type, preview_url=file_url, url=file_url
+            type="image", 
+            id=file_id, 
+            name=file.filename,
+            mime_type=file.content_type, 
+            preview_url=preview_data_url, # Use the Data URL here
+            url=f"http://localhost:8000/files/{safe_filename}"
         )
     else:
         attachment = FileAttachment(
-            type="file", id=file_id, name=file.filename,
-            mime_type=file.content_type, url=file_url
+            type="file", 
+            id=file_id, 
+            name=file.filename,
+            mime_type=file.content_type, 
+            url=f"http://localhost:8000/files/{safe_filename}"
         )
         
     await store.save_attachment(attachment, ctx)
