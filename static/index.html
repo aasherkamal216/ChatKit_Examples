@@ -11,22 +11,24 @@
             margin: 0; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             display: flex; 
-            justify-content: center; 
+            justify-content: flex-end; /* Align to right */
             align-items: center; 
             height: 100vh; 
             background: #f0f2f5; 
+            overflow: hidden;
         }
         
         #chat-container { 
             width: 100%; 
             max-width: 600px; 
-            height: 90vh; 
-            background: white; 
-            border-radius: 16px; 
-            box-shadow: 0 8px 30px rgba(0,0,0,0.12); 
+            height: 100vh; /* Full height */
+            background: transparent; /* Remove background */
+            border-radius: 0 !important; /* Force pointy corners */
+            box-shadow: none; /* Remove shadow */
             overflow: hidden; 
             display: flex;
             flex-direction: column;
+            border-left: 1px solid rgba(0,0,0,0.05); /* Optional subtle separator */
         }
 
         /* Ensure the custom element fills the container */
@@ -38,11 +40,11 @@
 
         .theme-toggle {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 10px;
+            left: 10px; /* Move to left */
             width: 40px;
             height: 40px;
-            border-radius: 50%;
+            border-radius: 30%;
             border: none;
             background: transparent;
             cursor: pointer;
@@ -58,11 +60,51 @@
             background: rgba(0,0,0,0.08);
             color: #000;
         }
+
+        .reset-btn {
+            position: absolute;
+            top: 16px;
+            left: 60px; /* Positioned after the toggle */
+            padding: 6px 12px;
+            border-radius: 99px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background: transparent;
+            cursor: pointer;
+            font-size: 13px;
+            color: #666;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .reset-btn:hover {
+            background: rgba(0,0,0,0.05);
+            color: #000;
+        }
+
+        .hero-text {
+            position: absolute;
+            top: 50%;
+            left: calc(50% - 300px); /* Center in the remaining space (page width - chat width) */
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: 700;
+            color: #424242;
+            opacity: 0.5;
+            pointer-events: none;
+            text-align: center;
+            line-height: 1.1;
+            z-index: 0;
+        }
     </style>
 </head>
 <body>
 
 <button id="theme-btn" class="theme-toggle"></button>
+<button id="reset-btn" class="reset-btn">Reset</button>
+
+<div class="hero-text">
+    ChatKit<br>Assistant
+</div>
 
 <div id="chat-container">
     <openai-chatkit id="chat"></openai-chatkit>
@@ -118,7 +160,7 @@
             }
         },
         startScreen: {
-            greeting: "Hello! I'm your ProAgent.",
+            greeting: "Hello! I'm your ChatKit Powered Agent.",
             prompts: [
                 { label: "Search AI News", prompt: "Search the web for the latest news on OpenAI ChatKit", icon: "lucide:search" },
                 { label: "Analyze Sales", prompt: "Analyze sales performance for North America.", icon: "lucide:bar-chart" },
@@ -138,8 +180,8 @@
                 { id: "preview_theme", label: "Theme Creation", icon: "lucide:paintbrush" }
             ],
             models: [
-                { id: "gpt-4o-mini", label: "GPT 4o Mini" , default: true },
-                { id: "gpt-5.1", label: "GPT 5.1" }
+                { id: "gpt-4o-mini", label: "GPT 4o Mini" , description: "Smaller and faster", default: true },
+                { id: "gpt-5.1", label: "GPT 5.1", description: "Latest and powerful" }
             ]
         },
         history: {
@@ -178,11 +220,21 @@
 
     // 5. Initialize Chat
     chat.setOptions(currentOptions);
+    
+    // Load initial fonts
+    if (currentOptions.theme && currentOptions.theme.typography && currentOptions.theme.typography.fontSources) {
+        loadDynamicFonts(currentOptions.theme.typography.fontSources);
+    }
 
     // Theme Toggle Logic
     const themeBtn = document.getElementById('theme-btn');
+    const resetBtn = document.getElementById('reset-btn');
     
+    // Store default theme to allow resetting
+    const defaultTheme = JSON.parse(JSON.stringify(currentOptions.theme));
+
     function updateThemeState() {
+        // ... (existing updateThemeState logic)
         // If theme is not set, default to light
         const theme = currentOptions.theme || {};
         const isDark = (theme.colorScheme === 'dark');
@@ -199,10 +251,18 @@
             themeBtn.style.color = '#ccc';
             themeBtn.onmouseover = () => { themeBtn.style.background = 'rgba(255,255,255,0.1)'; themeBtn.style.color = '#fff'; };
             themeBtn.onmouseout = () => { themeBtn.style.background = 'transparent'; themeBtn.style.color = '#ccc'; };
+            
+            // Update Reset Button for Dark Mode
+            resetBtn.style.borderColor = '#444';
+            resetBtn.style.color = '#888';
         } else {
             themeBtn.style.color = '#666';
             themeBtn.onmouseover = () => { themeBtn.style.background = 'rgba(0,0,0,0.08)'; themeBtn.style.color = '#000'; };
             themeBtn.onmouseout = () => { themeBtn.style.background = 'transparent'; themeBtn.style.color = '#666'; };
+
+            // Update Reset Button for Light Mode
+            resetBtn.style.borderColor = 'rgba(0,0,0,0.1)';
+            resetBtn.style.color = '#666';
         }
         
         // 3. Update Page Background
@@ -210,20 +270,29 @@
         
         // If the theme provides granular color controls (from 'preview_theme' tool)
         // We can derive a harmonious background color from the grayscale hue.
+        let accentColor = '#666'; // Default accent for reset button
         if (theme.color && theme.color.grayscale) {
             const hue = theme.color.grayscale.hue || 210;
             if (isDark) {
                 // Dark mode: Very dark desaturated version of the hue
                 bg = `hsl(${hue}, 20%, 10%)`;
+                accentColor = theme.color.accent?.primary || '#888';
             } else {
                 // Light mode: Very light desaturated version of the hue
                 bg = `hsl(${hue}, 20%, 96%)`;
+                accentColor = theme.color.accent?.primary || '#666';
             }
         }
         
         document.body.style.background = bg;
 
-        // 4. Update Container Radius
+        // 4. Update Hero Text Font
+        const heroText = document.querySelector('.hero-text');
+        if (theme.typography && theme.typography.fontFamily) {
+            heroText.style.fontFamily = theme.typography.fontFamily;
+        }
+
+        // 5. Update Reset Button Style (Radius & Accent)
         const radiusMap = {
             'none': '0px',
             'sharp': '0px',
@@ -232,12 +301,59 @@
             'md': '12px',
             'lg': '16px',
             'xl': '24px',
-            'pill': '24px', 
-            'full': '32px'
+            'pill': '99px', 
+            'full': '99px'
         };
-        const containerRadius = radiusMap[radius] || '16px';
-        document.getElementById('chat-container').style.borderRadius = containerRadius;
+        const btnRadius = radiusMap[radius] || '99px';
+        resetBtn.style.borderRadius = btnRadius;
+        
+        // Simple hover effect based on accent color
+        resetBtn.onmouseover = () => { 
+            resetBtn.style.color = isDark ? '#fff' : '#000';
+            resetBtn.style.borderColor = accentColor; 
+            resetBtn.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        };
+        resetBtn.onmouseout = () => { 
+            resetBtn.style.color = isDark ? '#888' : '#666'; 
+            resetBtn.style.borderColor = isDark ? '#444' : 'rgba(0,0,0,0.1)';
+            resetBtn.style.background = 'transparent';
+        };
+
+        // Container is now full height and transparent, so we don't apply radius to it.
     }
+
+    resetBtn.addEventListener('click', () => {
+        // Reset to original default theme
+        // We ensure we deep clone again to prevent reference issues
+        // CRITICAL: We must explicitly nullify keys that might have been added by a custom theme
+        // but don't exist in the default theme (like 'color' or 'density'), otherwise
+        // a deep merge in the SDK might preserve them.
+        const cleanTheme = {
+            ...JSON.parse(JSON.stringify(defaultTheme)),
+            color: undefined,   
+            density: undefined,
+            // Add any other potential keys to clear if known
+        };
+
+        currentOptions = {
+            ...currentOptions,
+            theme: cleanTheme
+        };
+        
+        // Re-inject the default fonts
+        if (defaultTheme.typography && defaultTheme.typography.fontSources) {
+            loadDynamicFonts(defaultTheme.typography.fontSources);
+        }
+
+        // Update SDK
+        // Note: passing 'undefined' keys might be stripped by JSON serialization or handled as 'remove' by the SDK
+        chat.setOptions(currentOptions);
+        
+        // Update UI
+        updateThemeState();
+        
+        console.log("Theme reset to default.");
+    });
 
     themeBtn.addEventListener('click', () => {
         const isDark = (currentOptions.theme && currentOptions.theme.colorScheme === 'dark');
@@ -262,6 +378,32 @@
     // Initial check
     updateThemeState();
 
+    // Helper to load fonts dynamically
+    function loadDynamicFonts(sources) {
+        if (!sources || !Array.isArray(sources)) return;
+        
+        const styleId = 'theme-dynamic-fonts';
+        let styleTag = document.getElementById(styleId);
+        if (!styleTag) {
+            styleTag = document.createElement('style');
+            styleTag.id = styleId;
+            document.head.appendChild(styleTag);
+        }
+        
+        const cssRules = sources.map(font => `
+            @font-face {
+                font-family: '${font.family}';
+                src: url('${font.src}') format('woff2');
+                font-weight: ${font.weight || 400};
+                font-style: ${font.style || 'normal'};
+                font-display: ${font.display || 'swap'};
+            }
+        `).join('\n');
+        
+        styleTag.textContent = cssRules;
+        console.log("Injected dynamic fonts:", sources.map(s => s.family));
+    }
+
     // 6. LISTEN FOR CLIENT EFFECTS
     // This allows the server to change the UI look and feel or trigger local logic.
     chat.addEventListener('chatkit.effect', (event) => {
@@ -270,6 +412,11 @@
         if (name === 'update_ui_theme') {
             console.log("Applying theme with typography:", data);
             
+            // 0. Inject Fonts immediately so they are available
+            if (data.typography && data.typography.fontSources) {
+                loadDynamicFonts(data.typography.fontSources);
+            }
+
             // 1. Update the local configuration object
             currentOptions = {
                 ...currentOptions,

@@ -59,9 +59,10 @@ async def preview_theme(
     accent_level: Literal[0, 1, 2, 3] = 2,
     base_font_size: Literal[14, 15, 16, 17, 18] = 16,
     grayscale_hue: int = 210,
+    tint: int = 8,
 ):
     """
-    Propose a fully customized UI theme.
+    Propose a fully customized UI theme. This theme will be applied to the entire chat interface.
     """
     theme_data = {
         "colorScheme": color_scheme,
@@ -74,11 +75,22 @@ async def preview_theme(
             "fontSources": font_sources,
         },
         "color": {
-            "grayscale": {"hue": grayscale_hue, "tint": 8},
+            "grayscale": {"hue": grayscale_hue, "tint": tint},
             "accent": {"primary": accent_color, "level": accent_level},
         },
     }
-
+    # 4. Stream Summary Message
+    summary = "The theme I suggest would suggest is:"
+    await ctx.context.stream(
+        ThreadItemDoneEvent(
+            item=AssistantMessageItem(
+                thread_id=ctx.context.thread.id,
+                id=ctx.context.generate_id("message"),
+                created_at=datetime.now(),
+                content=[AssistantMessageContent(text=summary)],
+            ),
+        )
+    )
     widget = build_clean_theme_widget(reasoning, theme_data)
     await ctx.context.stream_widget(widget)
 

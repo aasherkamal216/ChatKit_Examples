@@ -18,7 +18,7 @@ search_tool = WebSearchTool()  # Real web search via Responses API
 my_agent = Agent(
     name="ProAssistant",
     instructions="""
-    You are an advanced researcher and UI designer.
+    You are an advanced assistant with various capabilities.
     
     1. WEB SEARCH:
        - If asked to search, use the web_search tool.
@@ -27,7 +27,8 @@ my_agent = Agent(
     2. ENTITIES:
        - If the user provides a tagged entity (like <ORDER_CONTEXT>), use that information directly to answer.
 
-    3. THEMES:
+    3. CREATING THEMES:
+       - If the user asks to create a theme, use 'preview_theme' to generate a preview.
        - When customizing themes, propose high-quality font pairings.
        - Use these WOFF2 URLs:
           * Lora: https://fonts.gstatic.com/s/lora/v37/0QIvMX1D_JOuMwr7I_FMl_E.woff2
@@ -44,6 +45,9 @@ my_agent = Agent(
 
     6. DEEP RESEARCH:
        - If the user asks for a 'report', 'comprehensive study', or 'deep dive' on a topic, use 'generate_deep_research_report'.
+    
+    7. WEATHER INFORMATION:
+       - If the user asks about weather, use 'get_weather' to provide current conditions and forecasts.
     """,
     model="gpt-5-mini",
     tools=[
@@ -54,5 +58,5 @@ my_agent = Agent(
         analyze_sales_data,
         generate_deep_research_report,
     ],
-    tool_use_behavior=StopAtTools(stop_at_tool_names=[analyze_sales_data.name])
+    tool_use_behavior=StopAtTools(stop_at_tool_names=[analyze_sales_data.name, preview_theme.name])
 )
