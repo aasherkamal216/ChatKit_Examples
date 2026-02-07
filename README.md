@@ -1,6 +1,15 @@
 # ChatKit Assistant
 
-This project is a high-fidelity demonstration of the **OpenAI ChatKit** framework. It features a FastAPI backend and a vanilla JavaScript frontend, showcasing advanced agentic behaviors including multi-modal reasoning, visual workflows, and dynamic UI manipulation.
+This project is a demonstration of the **OpenAI ChatKit** framework. It features a FastAPI backend and a vanilla JavaScript frontend, showcasing advanced agentic behaviors including multi-modal reasoning, visual workflows, and dynamic UI manipulation.
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin: 24px 0;">
+  <img src="assets/img-1.png" alt="ChatKit Assistant" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+  <img src="assets/img-2.png" alt="Weather Widget" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+  <img src="assets/img-3.png" alt="Theme Suggestions" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+  <img src="assets/img-4.png" alt="Chart Widget" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+  <img src="assets/img-5.png" alt="Image Generation" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+  <img src="assets/img-6.png" alt="Web Search" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+</div>
 
 ## ✨ Key Features
 
